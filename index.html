@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Snipping Bot</title>
+  <link rel="icon" type="image/x-icon" href="public/favicon.ico}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <style>
+    body {
+      padding-top: 50px;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <div id="app" class="container">
+    <div class="row">
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <select name="cars" class="custom-select" v-model="chainId">
+          <option disabled value="" selected>Please select one</option>
+          <option >Ethereum</option>
+          <option >Binance Smart Chain</option>
+        </select>   
+      </div>
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="form-group">
+          <label for="blockkey">BlockNative Key</label>
+          <input type="text" class="form-control" v-model="blockKey" id="blockKey">
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="form-group">
+          <label for="usr">Wallet Address:</label>
+          <input type="text" class="form-control" v-model="walletAddr" id="usr">
+        </div>
+        <div class="form-group">
+          <label for="nodeURL">Node HTTP URL:</label>
+          <input type="text" class="form-control" v-model="nodeURL" id="nodeURL">        </div>
+      </div>
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="form-group">
+          <label for="pwd">Private Key:</label>
+          <input type="password" class="form-control" v-model="privateKey" id="pwd">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="token">Token Address:</label>
+      <input type="text" class="form-control" v-model="tokenAddress" id="token">
+    </div>
+    <div class="form-group">
+      <label for="pwd">ETH Amount:</label>
+      <input type="number" Placeholder="0.0" v-model="inAmount" class="short-input">
+      <label for="pwd">Slippage(%):</label>
+      <input type="number" Placeholder="0.0" v-model="slippage" class="short-input">
+      <label for="pwd">Gas Price:</label>
+      <input type="number" Placeholder="0.0" v-model="gasPrice" class="short-input">
+      <label for="pwd">Gas Limit:</label>
+      <input type="number" Placeholder="0.0" v-model="gasLimit" class="short-input">
+      <!-- <label for="profit">Sell Price(%):</label>
+      <input type="number" Placeholder="0.0" v-model="profit" class="short-input"> -->
+      <br></br>
+      <label for="limit">Limit ETH Amount</label>
+      <input type="number" Placeholder="0.0" v-model="limit" class="short-input">
+      
+      <button class="btn btn-primary" @click="setBotStatus()">{{botStatus}}</button>
+    </div>
+    <div class="token-list">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Buy/Sell</th>
+            <th>Amount</th>
+            <th>Transaction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in fullData">
+            <td>{{item.token}}</td>
+            <td>{{item.action}}</td>
+            <td>{{item.price}}</td>
+            <td><a v-bind:href="'https://etherscan.io/tx/' + item.transaction" v-if="chainId === 'Ethereum'">{{item.transaction}}</a></td>
+            <td><a v-bind:href="'https://bscscan.com/tx/' + item.transaction" v-if="chainId !== 'Ethereum'">{{item.transaction}}</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    // Set the initial setting for the bot to snipe the token.
+    var app = new Vue({
+      el: '#app',
+      data: {
+        wss: null,
+        botStatus    : 'Start Bot',
+        walletAddr   : '',
+        privateKey   : '',
+        nodeURL      : 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+        tokenAddress : '0x7d647b1a0dcd5525e9c6b3d14be58f27674f8c95',
+        inAmount     : 0.005,
+        slippage     : 50,
+        gasPrice     : 50,
+        gasLimit     : 400000,
+        fullData     : [],
+        limit        : 0.005,
+        chainId      : "",
+        blockKey     : '0b58206a-f3c0-4701-a62f-73c7243e8c77'
+      },
+      methods: {
+        setBotStatus() {
+          if (this.chainId !== "" &&
+            this.blockKey !== "" &&
+            this.walletAddr !== "" &&
+            this.privateKey !== ""
+          ) {
+            var obj = {}
+            if (this.botStatus === "Start Bot") {
+              obj = { botStatus: true, 
+                walletAddr: this.walletAddr, 
+                privateKey: this.privateKey, 
+                tokenAddress: this.tokenAddress, 
+                inAmount: this.inAmount.toString(), 
+                slippage: this.slippage.toString(), 
+                gasPrice: this.gasPrice.toString(), 
+                gasLimit: this.gasLimit.toString(), 
+                nodeURL: this.chainId == "Ethereum" ? this.nodeURL : 'https://bsc-dataseed1.ninicoin.io', 
+                limit: this.limit.toString(),
+                chainId : this.chainId == 'Ethereum' ? 1 : 56,
+                blockKey : this.blockKey,
+              };
+              this.botStatus = "Stop Bot"
+            } else {
+              obj = { botStatus: false };
+              this.botStatus = "Start Bot"
+            }
+            var str = JSON.stringify(obj);
+            this.wss.send(str);
+          } else {
+            alert("Please fill form!")
+          }
+        }
+      },
+      mounted() {
+        if ("WebSocket" in window) {
+          var wss = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "/connect/");
+          this.wss = wss;
+          wss.onopen = () => {
+            this.botStatus = "Stop Bot"
+            wss.send("connectRequest")
+          };
+
+          wss.onmessage = (evt) => {
+            var msg = evt.data
+            var obj = JSON.parse(msg);
+            if (obj.botStatus !== undefined) {
+              if (obj.botStatus === true)
+                this.botStatus = "Stop Bot"
+              else
+                this.botStatus = "Start Bot"
+            } else {
+
+              this.fullData.push({
+                token: obj.token
+                , action: obj.action
+                , price: obj.price
+                , transaction: obj.transaction
+              })
+            }
+
+          };
+
+          wss.onclose = () => {
+            console.log('winsocket closed')
+            this.wss = null;
+            this.botStatus = "Start Bot"
+          };
+        } else {
+          console.log("WebSocket NOT supported by your Browser!");
+        }
+      }
+    })
+
+
+  </script>
+  <style>
+    .short-input {
+      width: 10%;
+      margin: 7px;
+    }
+  </style>
+</body>
+
+</html>
